@@ -10,8 +10,17 @@ Installs aidlc-custom into the current git repository. Templates are in `${CLAUD
 ## 0. Preconditions
 
 - Must be inside a git repository (`git rev-parse --show-toplevel`). If not, stop and say so.
-- Find the AI-DLC rule details directory, in this order: `.aidlc/aidlc-rules/aws-aidlc-rule-details/`, `.aidlc-rule-details/`, `.kiro/aws-aidlc-rule-details/`, `.amazonq/aws-aidlc-rule-details/`. If none exists, tell the user that aidlc-custom extends the AWS AI-DLC workflow (github.com/awslabs/aidlc-workflows), which must be installed first, and stop.
+- Find the AI-DLC rule details directory, in this order: `.aidlc/aidlc-rules/aws-aidlc-rule-details/`, `.aidlc-rule-details/`, `.kiro/aws-aidlc-rule-details/`, `.amazonq/aws-aidlc-rule-details/`. If none exists, see "Installing the AI-DLC rules" below.
 - Check that `python3` is on the PATH; the hooks need it.
+
+### Installing the AI-DLC rules
+
+aidlc-custom extends the AWS AI-DLC v1 workflow (github.com/awslabs/aidlc-workflows). When the project has no rules, offer to install the copy of v1.0.1 vendored in `${CLAUDE_PLUGIN_ROOT}/vendor/aidlc-rules/` (version in its `VERSION` file):
+- If that directory does not exist (this is a no-plugin install), tell the user to re-run `tools/export_to_project.py <project> --with-aidlc` from the aidlc-custom repository, or to install AI-DLC v1 themselves, and stop.
+- Ask before copying. If the user declines, tell them AI-DLC v1 must be installed first, and stop.
+- Copy `aws-aidlc-rule-details/` to `.aidlc-rule-details/` unchanged; that becomes the rule details directory for the steps below.
+- `aws-aidlc-rules/core-workflow.md` is the core workflow. If there is no `CLAUDE.md`, create it as a copy of that file. If `CLAUDE.md` exists and does not contain the workflow's first line, show that and ask whether to append the workflow to the end; never replace the existing content.
+- Mention in the report that the rules are AI-DLC v1.0.1 under MIT-0, and that `.aidlc-rule-details/` and `CLAUDE.md` should be committed.
 
 ## 1. Project config — `.aidlc/aidlc-custom.json`
 

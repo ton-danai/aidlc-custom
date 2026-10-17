@@ -3,5 +3,6 @@
   "version": "0.1.0",
   "description": "Unofficial extension for the AWS AI-DLC workflow: right-sized work tracks (S/M/L), functional-spec sync enforced at commit, and hooks that keep AI-DLC bookkeeping out of the context window.",
   "author": { "name": "Danai T" },
+  "license": "MIT",
   "keywords": ["ai-dlc", "workflow", "spec", "claude-code-plugin"]
 }

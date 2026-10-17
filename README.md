@@ -12,7 +12,7 @@ AI-DLC runs a full staged workflow (requirements → design → code → build/t
 ## Requirements
 
 - Claude Code with plugin support
-- The AWS AI-DLC **v1** rules in the project (for example `.aidlc-rule-details/`). A copy of v1.0.1 is vendored in `vendor/aidlc-rules/` and `export_to_project.py --with-aidlc` installs it. AI-DLC 2.x uses a different runtime and is not supported.
+- The AWS AI-DLC **v1** rules in the project (for example `.aidlc-rule-details/`). A copy of v1.0.1 is vendored in `vendor/aidlc-rules/`; `init` offers to install it when the project has none, and `export_to_project.py --with-aidlc` installs it. AI-DLC 2.x uses a different runtime and is not supported.
 - `python3` on the PATH (the hooks are small Python scripts with no dependencies)
 - Node.js only if you use the optional Word export in `tools/spec-docx/`
 
@@ -29,7 +29,7 @@ Then, in each project:
 /aidlc-custom:init
 ```
 
-`init` creates `.aidlc/aidlc-custom.json`, installs the `commit-msg` hook into `.githooks/`, adds the Work Tracks extension to the AI-DLC rules, inserts a short team-rules section into `CLAUDE.md`, and prepares the state/audit layout. It is safe to re-run.
+`init` offers to install the vendored AI-DLC v1 rules if the project has none, then creates `.aidlc/aidlc-custom.json`, installs the `commit-msg` hook into `.githooks/`, adds the Work Tracks extension to the AI-DLC rules, inserts a short team-rules section into `CLAUDE.md`, and prepares the state/audit layout. It is safe to re-run.
 
 To have teammates prompted to install the plugin, add to the project's `.claude/settings.json`:
 
@@ -142,4 +142,4 @@ vendor/             AWS AI-DLC v1.0.1 rules (MIT-0), see vendor/README.md
 
 ## License
 
-Not yet decided — this repository is private for now. Choose a license before making it public.
+MIT, see [LICENSE](LICENSE). The vendored AWS AI-DLC rules in `vendor/aidlc-rules/` keep their own MIT No Attribution license from Amazon.

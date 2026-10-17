@@ -10,4 +10,4 @@ First version, extracted from a team's AI-DLC setup.
 - Skills: `/aidlc-custom:ship`, `/aidlc-custom:simplify`, `/aidlc-custom:code-review`, `/aidlc-custom:init`
 - `tools/spec-docx`: Markdown functional spec → Word document
 - `tools/export_to_project.py`: install into a project's `.claude/` without the plugin
-- `vendor/aidlc-rules/`: AWS AI-DLC v1.0.1 rules (MIT-0); `export_to_project.py --with-aidlc` installs them with `CLAUDE.md`, so one repo sets a project up
+- `vendor/aidlc-rules/`: AWS AI-DLC v1.0.1 rules (MIT-0); `export_to_project.py --with-aidlc` installs them with `CLAUDE.md`, and `/aidlc-custom:init` offers to when the project has none, so one repo sets a project up
