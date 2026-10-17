@@ -1,0 +1,15 @@
+{
+  "name": "aidlc-custom",
+  "owner": {
+    "name": "Danai T"
+  },
+  "description": "Unofficial extension for the AWS AI-DLC workflow: work tracks, spec sync and context-budget hooks.",
+  "plugins": [
+    {
+      "name": "aidlc-custom",
+      "source": "./",
+      "description": "Right-sized AI-DLC work tracks, spec sync and context-budget hooks.",
+      "version": "0.1.0"
+    }
+  ]
+}

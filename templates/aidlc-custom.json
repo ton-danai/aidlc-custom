@@ -1,0 +1,18 @@
+{
+  "sourceDirs": ["backend/src", "frontend/src"],
+  "testFilePattern": "\\.(spec|test)\\.[jt]sx?$",
+  "specDir": "aidlc-docs/functional-spec/as-is",
+  "auditFile": "aidlc-docs/audit.md",
+  "auditArchiveDir": "aidlc-docs/audit",
+  "stateFile": "aidlc-docs/aidlc-state.md",
+  "gitHooksPath": ".githooks",
+  "stateLimitBytes": 15000,
+  "specSmallBytes": 12000,
+  "maxReadLines": 400,
+  "commands": {
+    "test": ["npm test --prefix backend", "npm test --prefix frontend"],
+    "typecheck": ["npx --prefix backend tsc --noEmit", "npx --prefix frontend tsc --noEmit"],
+    "restart": ""
+  },
+  "securityChecklist": []
+}

@@ -1,0 +1,10 @@
+{
+  "name": "aidlc-custom-spec-docx",
+  "private": true,
+  "type": "module",
+  "description": "Build a Word document from an AS-IS functional spec written in Markdown",
+  "dependencies": {
+    "docx": "9.5.1",
+    "marked": "15.0.12"
+  }
+}

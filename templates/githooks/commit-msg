@@ -1,0 +1,56 @@
+#!/usr/bin/env python3
+"""Spec sync check (aidlc-custom, rule TRACK-05).
+
+A feat/fix commit that changes source code must also stage a change under the
+spec directory, or say in its message that behaviour did not change:
+"spec: no behaviour change". Settings come from .aidlc/aidlc-custom.json
+(sourceDirs, testFilePattern, specDir). Installed by /aidlc-custom:init.
+Bypass in an emergency with: git commit --no-verify
+"""
+import json
+import os
+import re
+import subprocess
+import sys
+
+DEFAULT_SPEC_DIR = "aidlc-docs/functional-spec/as-is"
+DEFAULT_TEST_PATTERN = r"\.(spec|test)\.[jt]sx?$"
+
+
+def main(msg_file):
+    root = subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True).stdout.strip()
+    cfg_path = os.path.join(root, ".aidlc", "aidlc-custom.json")
+    if not os.path.isfile(cfg_path):
+        return 0
+    cfg = json.load(open(cfg_path, encoding="utf-8"))
+    source_dirs = [d.strip("/") + "/" for d in cfg.get("sourceDirs", [])]
+    if not source_dirs:
+        return 0
+    spec_dir = cfg.get("specDir", DEFAULT_SPEC_DIR).strip("/") + "/"
+    test_re = re.compile(cfg.get("testFilePattern", DEFAULT_TEST_PATTERN))
+
+    body = [line for line in open(msg_file, encoding="utf-8").read().split("\n") if not line.startswith("#")]
+    subject = next((line for line in body if line.strip()), "")
+    if not re.match(r"^(feat|fix)(\([^)]*\))?!?:", subject):
+        return 0
+    if re.search(r"spec: no behaviou?r change", "\n".join(body), re.IGNORECASE):
+        return 0
+
+    staged = subprocess.run(["git", "diff", "--cached", "--name-only", "--diff-filter=ACMRD"],
+                            capture_output=True, text=True).stdout.split("\n")
+    code = [f for f in staged if f.startswith(tuple(source_dirs)) and not test_re.search(f)]
+    spec = [f for f in staged if f.startswith(spec_dir)]
+    if code and not spec:
+        kind = subject.split(":")[0].split("(")[0].rstrip("!")
+        sys.stderr.write(
+            "commit-msg: spec sync check failed (TRACK-05).\n"
+            f"  This {kind} commit changes source code but no file in {spec_dir}.\n"
+            "  Either update the matching spec file and stage it, or add this line\n"
+            "  to the commit message if behaviour did not change:\n"
+            "    spec: no behaviour change\n")
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1]))
