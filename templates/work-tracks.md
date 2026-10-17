@@ -46,7 +46,7 @@ Answer each question. Take the **highest** track that any "yes" maps to.
 2. Implement it, with tests in the same change.
 3. Run the affected tests and type checks (`commands` in `.aidlc/aidlc-custom.json`). If a `restart` command is configured and server code changed, run it.
 4. Update the functional spec (TRACK-05).
-5. Report what changed, the test counts and which spec file(s) changed, then stop. Closing (simplify, review, commit) happens when the user runs `/aidlc-custom:ship` or asks for it.
+5. Report what changed, the test counts and which spec file(s) changed, then stop. Closing (simplify, review, commit) happens when the user asks for it (TRACK-07).
 
 No requirements, design or plan documents. No approval gates except the clarifications in step 1.
 
@@ -149,6 +149,46 @@ Where each kind of change goes, for the default AS-IS layout (files `00`–`15`;
 **Verification**:
 - No extension or stage rule file was read for a Track S item
 - `audit.md` was appended to, not read in full
+
+---
+
+## Rule TRACK-07: Closing a Change (Ship)
+
+**Rule**: When the user says "ship", "close", "wrap up" or "commit this" (or runs `/aidlc-custom:ship`), close the change with the steps below, in order. Only step 4 waits for the user; run every other step without asking. The steps don't depend on any particular tool: where your tool has a dedicated simplify or code-review feature you may use it, but it must cover at least the checklist given here, and a missing feature never means skipping the step. aidlc-custom ships `simplify` and `code-review` skills (`SKILL.md` files) that run steps 2 and 3 in any tool that loads skills.
+
+The user may say "push" (push after committing) or "no review" (skip steps 2–4, for docs-only or trivial changes). If `.aidlc/aidlc-custom.json` is missing, tell the user to set aidlc-custom up first and stop.
+
+1. **Check the change.** `git status` and `git diff --stat`. If nothing changed, say so and stop. If unrelated changes are mixed in (stray untracked files, edits from another work item), list them and leave them out. Never `git add -A`; stage files by path. Note which parts of the code changed (for example server, client, or both).
+2. **Simplify.** Go through the diff (not the whole codebase) and fix what you find:
+   - code that duplicates a helper, component or utility the project already has: use the existing one
+   - abstractions, parameters, options or layers with only one caller and no clear need
+   - dead code: unused variables, imports, functions, branches, commented-out code
+   - work done twice: repeated queries or API calls, a query inside a loop, recomputing a value that is already at hand
+   - names or structure that don't match the surrounding code
+
+   Don't change behaviour here. Note what you changed and what you left alone, for the log.
+3. **Review.** Read the full diff, plus the code each change calls or is called by, and look for correctness bugs:
+   - logic: wrong condition, inverted check, off-by-one, wrong variable, wrong order of operations
+   - edge cases: null/undefined, empty list or string, zero, boundary dates and values, duplicates, concurrent requests
+   - permissions and data exposure: every new or changed endpoint checks who may call it, users can't reach other users' data, nothing secret or personal goes to logs or responses
+   - input validation and error handling: inputs validated, errors not swallowed, failures leave data consistent (transactions where several writes must succeed together)
+   - data changes: migrations reversible, existing rows handled, no bulk delete or overwrite without a guard
+   - callers and contracts: every caller of a changed function, API or type still works
+   - tests: the changed behaviour is covered, including the failure paths
+   - the TRACK-06 security list and any `securityChecklist` items
+
+   Report only problems you can point to in the code, with a concrete case that goes wrong. Don't report style preferences.
+4. **Choose fixes (the only stop).** If the review found nothing, say so and go on. Otherwise list the findings numbered, most severe first, one line each with `file:line`, and recommend which to fix (for example "fix 1–3; 4 is pre-existing"). Wait for the user to pick. Apply the chosen fixes, each behaviour change with a test. For real but out-of-scope findings not chosen, ask once whether to record them in the project's backlog file, if it has one.
+5. **Verify.** Run the `commands.test` and `commands.typecheck` entries that apply to the changed code. If a migration was added, check that it applies and reverts on the dev database. If anything fails, fix it and run it again; if you can't fix it, stop, report the failing output and don't commit. If `commands.restart` is set and server code changed, run it and confirm the server started.
+6. **Spec sync.** Compare the final diff with the spec (TRACK-05). If behaviour changed and the spec doesn't describe it yet, edit the matching file(s) now, locating rows with `grep -n`. If the change is exempt, the commit message carries `spec: no behaviour change`. Don't regenerate document exports.
+7. **Log.** Append to the audit file with `cat >> <auditFile> <<'EOF'`; don't read or rewrite it. Add one entry per step that ran (Simplify, Code Review Fixes, Ship), in the project's audit format, with the user's raw input, an ISO timestamp and the test counts. Update the state file as TRACK-04 says.
+8. **Commit.** Match the repo's commit style (`git log`). Typical shape: `<type>(<scope>): <summary in the user's terms>`, a short body on what the user sees, then a list of notable changes. Types: `feat`, `fix`, `refactor`, `docs`, `chore`; the scope is the page or module. Add `spec: no behaviour change` on its own line when step 6 found the change exempt. One commit per work item, including its `aidlc-docs/` updates. Commit on the current branch; push only when the user said "push".
+9. **Report.** At most six lines: commit sha and subject, fixes applied, test counts, spec files updated (or "spec: no behaviour change"), backlog items added, and whether it was pushed.
+
+**Verification**:
+- Steps 2 and 3 ran (or the user said "no review"); neither was skipped for lack of a tool feature
+- No commit was made with failing tests or type checks
+- The commit stages files by path and includes the spec and `aidlc-docs/` updates
 
 ---
 
