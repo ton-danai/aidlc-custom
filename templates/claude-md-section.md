@@ -1,5 +1,24 @@
-## MANDATORY: Team rules (aidlc-custom) — these override the generic steps below
-- **Spec sync (every change).** Whether or not the staged workflow is running, any `feat`/`fix` change that alters behaviour (screens, business rules, permissions, API endpoints, data fields, integrations, scheduled jobs) MUST update the matching file in the spec directory (`specDir` in `.aidlc/aidlc-custom.json`) in the same commit. The change→file mapping and exemptions are in `extensions/aidlc-custom/work-tracks/work-tracks.md` rule TRACK-05. If behaviour did not change, put `spec: no behaviour change` in the commit message. The `commit-msg` git hook enforces this.
-- **Classify the track before loading rules.** Size the request first (TRACK-01). For Track S, do NOT load the full rule files of opted-in extensions or the stage rule files; apply the Track S checklist in TRACK-06 instead. Load them for Track M/L.
-- **Keep context small (TRACK-06).** `aidlc-state.md` is an index; work-item details live in `aidlc-docs/work-items/`. Append to `audit.md` with a shell heredoc without reading it; older months are in `aidlc-docs/audit/`. Edit spec files by locating the row with grep and reading only those lines. The aidlc-custom plugin hooks enforce the audit/spec read limits and rotate the audit log at month start.
-- **Closing a change (TRACK-07).** Run `/aidlc-custom:ship`, or ask to "ship": simplify, review, test, sync the spec, log and commit. Simplify and review are never skipped for lack of a tool feature; TRACK-07 has the checklists.
+## MANDATORY: Team workflow (aidlc-custom)
+This project uses AWS AI-DLC v1 with aidlc-custom work tracks. Read rule files only when a step below says so, never up front.
+- Work tracks: `{{RULES}}/extensions/aidlc-custom/work-tracks/work-tracks.md` (find a rule with `grep -n "TRACK-0N"`, read that rule only)
+- Core AI-DLC workflow (Track M/L only): `{{WORKFLOW}}`
+
+**1. Size every request first (TRACK-01).** Before changing code, state the track in one line with the reason. The user's "track S/M/L" or "full workflow" wins. Take the highest that applies:
+- **L**: a new module, page group, external system or scheduled job in an existing system; more than one unit of work or about a day.
+- **M**: a migration; a permission or visibility change; a business rule the spec documents; bulk delete/overwrite of user data; ambiguity that 1–2 questions can't settle.
+- **S**: everything else: filter, sort, export, label, layout, small bug fix, one-endpoint tweak, and small standalone apps or prototypes with no backend and no real user data (a tic-tac-toe game is S).
+
+**2. Track S.** Don't read the core workflow, stage rules or extension rules, and don't show the AI-DLC welcome message.
+1. Intent: 1–3 lines in chat (what, done when). Ask only if it has more than one reasonable meaning: at most 3 questions, in chat.
+2. Code and tests in the same change; run `commands.test`/`commands.typecheck` from `.aidlc/aidlc-custom.json`.
+3. Spec sync (below).
+4. Report and stop. No requirements, plan or design files; no "shall I continue?" between steps.
+If a size question above turns into a "yes" mid-work, stop and propose the new track (TRACK-03).
+
+**3. Track M/L.** Read work-tracks.md TRACK-02 to TRACK-04 and TRACK-08, then the core workflow, and follow it with those trims. Track M has one approval before code. Extensions follow `extensions` in `.aidlc/aidlc-custom.json`: don't ask an opt-in question it already answers.
+
+**4. Every track.**
+- Spec sync (TRACK-05): a `feat`/`fix` that changes behaviour updates `specDir` in the same commit, or says `spec: no behaviour change`. The `commit-msg` hook enforces it. Locate spec rows with `grep -n`.
+- Context (TRACK-06): append to the audit log with a heredoc, never read it whole; `aidlc-state.md` is an index.
+- Closing (TRACK-07): `/aidlc-custom:ship` or "ship": simplify, review, the user picks fixes, test, spec, log, commit.
+- Fuller docs only on request: `/aidlc-custom:doc` (full spec, change note, Word export).

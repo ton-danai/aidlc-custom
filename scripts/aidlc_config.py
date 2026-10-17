@@ -18,6 +18,7 @@ DEFAULTS = {
     "specSmallBytes": 12000,
     "maxReadLines": 400,
     "gitHooksPath": ".githooks",
+    "extensions": {},
 }
 
 

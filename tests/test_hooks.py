@@ -19,6 +19,7 @@ CONFIG = {
     "stateFile": "aidlc-docs/aidlc-state.md",
     "gitHooksPath": ".githooks",
     "stateLimitBytes": 15000,
+    "extensions": {"resiliency-baseline": "off", "security-baseline": "on"},
 }
 
 
@@ -111,6 +112,7 @@ class GuardReadTest(Project):
         return self.decide(json.dumps({"tool_input": {"file_path": os.path.join(self.dir, rel), **extra}}))
 
     def test_cases(self):
+        ext = ".aidlc/aidlc-rules/aws-aidlc-rule-details/extensions"
         cases = [
             ("aidlc-docs/audit.md", {}, "deny"),
             ("aidlc-docs/audit.md", {"offset": 10, "limit": 50}, "allow"),
@@ -120,6 +122,11 @@ class GuardReadTest(Project):
             ("aidlc-docs/functional-spec/as-is/06-big.md", {"offset": 1, "limit": 120}, "allow"),
             ("aidlc-docs/functional-spec/as-is/07-small.md", {}, "allow"),
             ("backend/src/main.ts", {}, "allow"),
+            (f"{ext}/resiliency/baseline/resiliency-baseline.md", {}, "deny"),
+            (f"{ext}/resiliency/baseline/resiliency-baseline.md", {"offset": 1, "limit": 50}, "deny"),
+            (f"{ext}/resiliency/baseline/resiliency-baseline.opt-in.md", {}, "deny"),
+            (f"{ext}/security/baseline/security-baseline.md", {}, "allow"),
+            (f"{ext}/testing/property-based/property-based-testing.md", {}, "allow"),
         ]
         for rel, extra, expected in cases:
             with self.subTest(rel=rel, extra=extra):

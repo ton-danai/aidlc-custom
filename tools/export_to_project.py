@@ -5,13 +5,16 @@
 Layout written into the project:
   .claude/aidlc-custom/scripts/     hook scripts
   .claude/aidlc-custom/templates/   templates used by /aidlc-init
+  .claude/aidlc-custom/tools/spec-docx/  Word export used by /aidlc-doc
   .claude/skills/aidlc-init/        was /aidlc-custom:init
-  .claude/skills/aidlc-ship/        was /aidlc-custom:ship
+  .claude/skills/aidlc-ship/        was /aidlc-custom:ship (likewise simplify, code-review, doc)
   .claude/settings.json             hooks merged in; other settings kept
 
-With --with-aidlc, also the vendored AWS AI-DLC v1 rules:
-  .aidlc-rule-details/              unless the project already has AI-DLC rules
-  CLAUDE.md                         the core workflow, unless CLAUDE.md exists
+With --with-aidlc, also the vendored AWS AI-DLC v1 rules, in AI-DLC's own
+.aidlc/aidlc-rules/ layout:
+  aws-aidlc-rule-details/           unless the project already has AI-DLC rules
+  aws-aidlc-rules/core-workflow.md  read on demand for Track M/L, not every call
+  CLAUDE.md                         the short team section, unless CLAUDE.md exists
 
 Plugin paths and command names are rewritten on the way. Files under
 .claude/aidlc-custom/ and the two skills are owned by this script and
@@ -26,8 +29,12 @@ import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DEST = ".claude/aidlc-custom"
-SKILLS = {"init": "aidlc-init", "ship": "aidlc-ship", "simplify": "aidlc-simplify", "code-review": "aidlc-code-review"}
+SKILLS = {"init": "aidlc-init", "ship": "aidlc-ship", "simplify": "aidlc-simplify", "code-review": "aidlc-code-review",
+          "doc": "aidlc-doc"}
+PARTS = ["scripts", "templates", os.path.join("tools", "spec-docx")]
+SKIP_DIRS = {"__pycache__", "node_modules"}
 AIDLC = os.path.join("vendor", "aidlc-rules")
+WORKFLOW = ".aidlc/aidlc-rules/aws-aidlc-rules/core-workflow.md"
 # Where AI-DLC v1 rule details may live, in the order /aidlc-init looks.
 RULE_DIRS = [".aidlc/aidlc-rules/aws-aidlc-rule-details", ".aidlc-rule-details",
              ".kiro/aws-aidlc-rule-details", ".amazonq/aws-aidlc-rule-details"]
@@ -106,7 +113,7 @@ class Export:
 
     def copy_tree(self, src_rel, dest_rel, raw=False):
         for dirpath, dirnames, filenames in os.walk(os.path.join(ROOT, src_rel)):
-            dirnames[:] = [d for d in dirnames if d != "__pycache__"]
+            dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS]
             for name in sorted(filenames):
                 if name.endswith(".pyc"):
                     continue
@@ -117,7 +124,7 @@ class Export:
         """Delete files under dest_rel that no longer exist in the plugin."""
         dest = os.path.join(self.project, dest_rel)
         for dirpath, dirnames, filenames in os.walk(dest):
-            dirnames[:] = [d for d in dirnames if d != "__pycache__"]
+            dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS]
             for name in filenames:
                 rel = os.path.relpath(os.path.join(dirpath, name), dest)
                 if not os.path.exists(os.path.join(ROOT, src_rel, rel)):
@@ -140,27 +147,26 @@ class Export:
 
     def aidlc(self):
         """Install the vendored AI-DLC v1 rules, never touching rules or a CLAUDE.md already there."""
-        existing = next((d for d in RULE_DIRS if os.path.isdir(os.path.join(self.project, d))), None)
-        if existing:
-            self.notes.append(f"AI-DLC rules already in {existing}/; left as is.")
+        rules = next((d for d in RULE_DIRS if os.path.isdir(os.path.join(self.project, d))), None)
+        if rules:
+            self.notes.append(f"AI-DLC rules already in {rules}/; left as is.")
         else:
-            self.copy_tree(os.path.join(AIDLC, "aws-aidlc-rule-details"), ".aidlc-rule-details", raw=True)
-        workflow = os.path.join(AIDLC, "aws-aidlc-rules", "core-workflow.md")
-        claude_md = os.path.join(self.project, "CLAUDE.md")
-        if not os.path.exists(claude_md):
-            self.copy(workflow, "CLAUDE.md", raw=True)
+            rules = RULE_DIRS[0]
+            self.copy_tree(os.path.join(AIDLC, "aws-aidlc-rule-details"), rules, raw=True)
+        if not os.path.exists(os.path.join(self.project, WORKFLOW)):
+            self.copy(os.path.join(AIDLC, "aws-aidlc-rules", "core-workflow.md"), WORKFLOW, raw=True)
+        if os.path.exists(os.path.join(self.project, "CLAUDE.md")):
+            self.notes.append("CLAUDE.md exists and was left as is; /aidlc-init adds the team section "
+                              "and offers to move an inlined core workflow out of it.")
             return
-        with open(os.path.join(ROOT, workflow), encoding="utf-8") as f:
-            first_line = f.readline().strip()
-        with open(claude_md, encoding="utf-8") as f:
-            if first_line not in f.read():
-                self.notes.append(f"CLAUDE.md exists and was left as is; add the AI-DLC workflow "
-                                  f"from {os.path.join(ROOT, workflow)} to it yourself.")
+        with open(os.path.join(ROOT, "templates", "claude-md-section.md"), encoding="utf-8") as f:
+            section = rewrite(f.read()).replace("{{RULES}}", rules).replace("{{WORKFLOW}}", WORKFLOW)
+        self.write("CLAUDE.md", f"# Project instructions\n\n{section}".encode("utf-8"))
 
     def run(self, with_aidlc=False):
         if with_aidlc:
             self.aidlc()
-        for part in ("scripts", "templates"):
+        for part in PARTS:
             self.copy_tree(part, os.path.join(DEST, part))
             self.remove_stale(part, os.path.join(DEST, part))
         for old, new in SKILLS.items():

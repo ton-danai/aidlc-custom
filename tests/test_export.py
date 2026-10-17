@@ -35,7 +35,7 @@ class ExportTest(unittest.TestCase):
         init = read(self.path(".claude", "skills", "aidlc-init", "SKILL.md"))
         self.assertIn("\nname: aidlc-init\n", init)
         self.assertIn("`.claude/aidlc-custom/templates/`", init)
-        for name in ("aidlc-ship", "aidlc-simplify", "aidlc-code-review"):
+        for name in ("aidlc-ship", "aidlc-simplify", "aidlc-code-review", "aidlc-doc"):
             self.assertIn(f"\nname: {name}\n", read(self.path(".claude", "skills", name, "SKILL.md")))
         self.assertTrue(os.access(self.path(".claude", "aidlc-custom", "templates", "githooks", "commit-msg"), os.X_OK))
         for root, _, files in os.walk(self.path(".claude")):
@@ -63,6 +63,18 @@ class ExportTest(unittest.TestCase):
         settings = json.loads(read(self.path(".claude", "settings.json")))
         self.assertEqual(len(settings["hooks"]["SessionStart"]), 1)
 
+    def test_doc_skill_points_at_exported_word_tool(self):
+        self.export()
+        doc = read(self.path(".claude", "skills", "aidlc-doc", "SKILL.md"))
+        self.assertIn("node .claude/aidlc-custom/tools/spec-docx/build.mjs", doc)
+        self.assertTrue(os.path.exists(self.path(".claude", "aidlc-custom", "tools", "spec-docx", "build.mjs")))
+        modules = self.path(".claude", "aidlc-custom", "tools", "spec-docx", "node_modules", "x.js")
+        os.makedirs(os.path.dirname(modules))
+        with open(modules, "w") as f:
+            f.write("x")
+        self.export()
+        self.assertTrue(os.path.exists(modules), "installed node_modules must survive a re-export")
+
     def test_removes_files_dropped_from_plugin(self):
         self.export()
         stale = self.path(".claude", "aidlc-custom", "scripts", "old.py")
@@ -79,10 +91,18 @@ class ExportTest(unittest.TestCase):
     def test_with_aidlc_installs_vendored_rules(self):
         self.assertEqual(self.export("--with-aidlc").returncode, 0)
         vendor = os.path.join(ROOT, "vendor", "aidlc-rules")
-        self.assertEqual(read(self.path("CLAUDE.md")),
+        installed = self.path(".aidlc", "aidlc-rules")
+        self.assertEqual(read(os.path.join(installed, "aws-aidlc-rules", "core-workflow.md")),
                          read(os.path.join(vendor, "aws-aidlc-rules", "core-workflow.md")))
-        self.assertEqual(read(self.path(".aidlc-rule-details", "inception", "requirements-analysis.md")),
+        self.assertEqual(read(os.path.join(installed, "aws-aidlc-rule-details", "inception", "requirements-analysis.md")),
                          read(os.path.join(vendor, "aws-aidlc-rule-details", "inception", "requirements-analysis.md")))
+        claude_md = read(self.path("CLAUDE.md"))
+        self.assertIn("## MANDATORY: Team workflow (aidlc-custom)", claude_md)
+        self.assertIn("`.aidlc/aidlc-rules/aws-aidlc-rules/core-workflow.md`", claude_md)
+        self.assertIn("`.aidlc/aidlc-rules/aws-aidlc-rule-details/extensions/aidlc-custom/", claude_md)
+        self.assertIn("/aidlc-ship", claude_md)
+        self.assertNotIn("{{", claude_md)
+        self.assertLess(len(claude_md), 4000)
         self.assertIn("Already up to date.", self.export("--with-aidlc").stdout)
 
     def test_with_aidlc_keeps_existing_rules_and_claude_md(self):
@@ -90,7 +110,8 @@ class ExportTest(unittest.TestCase):
         with open(self.path("CLAUDE.md"), "w") as f:
             f.write("# Team rules\n")
         out = self.export("--with-aidlc").stdout
-        self.assertFalse(os.path.exists(self.path(".aidlc-rule-details")))
+        self.assertFalse(os.path.exists(self.path(".aidlc", "aidlc-rules", "aws-aidlc-rule-details")))
+        self.assertTrue(os.path.exists(self.path(".aidlc", "aidlc-rules", "aws-aidlc-rules", "core-workflow.md")))
         self.assertEqual(read(self.path("CLAUDE.md")), "# Team rules\n")
         self.assertIn("note: AI-DLC rules already in .kiro/aws-aidlc-rule-details/", out)
         self.assertIn("note: CLAUDE.md exists", out)
@@ -98,7 +119,7 @@ class ExportTest(unittest.TestCase):
     def test_without_flag_skips_aidlc(self):
         self.export()
         self.assertFalse(os.path.exists(self.path("CLAUDE.md")))
-        self.assertFalse(os.path.exists(self.path(".aidlc-rule-details")))
+        self.assertFalse(os.path.exists(self.path(".aidlc")))
 
     def test_invalid_settings_aborts(self):
         os.makedirs(self.path(".claude"))

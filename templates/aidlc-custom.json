@@ -14,5 +14,10 @@
     "typecheck": ["npx --prefix backend tsc --noEmit", "npx --prefix frontend tsc --noEmit"],
     "restart": ""
   },
+  "extensions": {
+    "security-baseline": "ask",
+    "resiliency-baseline": "off",
+    "property-based-testing": "off"
+  },
   "securityChecklist": []
 }
