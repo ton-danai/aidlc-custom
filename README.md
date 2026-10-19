@@ -4,12 +4,13 @@ An **unofficial** extension for the [AWS AI-DLC workflow](https://github.com/aws
 
 AI-DLC runs a full staged workflow (requirements → design → code → build/test) with approval gates. That fits large features, but teams skip it for small changes, so those changes leave no design notes and the functional spec drifts. aidlc-custom adds:
 
-- **Work tracks (S / M / L).** Every request is sized first with a 7-question checklist. Track S (filters, exports, small fixes, small standalone prototypes) is intent → code and tests → spec sync → ship, with no design documents and no approval gates; Track M has one requirements + functional-design gate; Track L runs the full AI-DLC workflow.
+- **Work tracks (S / M / L).** Every request is sized first with an 8-question checklist. Track S (filters, exports, small fixes, small standalone prototypes) is intent → code and tests → spec sync → ship, with no design documents and no approval gates; Track M (the default for a clear-scope feature, even a new module or integration) has one requirements + functional-design gate; Track L runs the full AI-DLC workflow, only when requirements stay unclear after a round of questions or the work ships as several units.
 - **Small CLAUDE.md.** `CLAUDE.md` holds only a ~2.4 KB team section (sizing and Track S). The ~25 KB core AI-DLC workflow is a separate file read only for Track M/L, so small requests don't pay for it on every call.
 - **Extensions per project.** `extensions` in the config turns the large AI-DLC extensions (security, resiliency, property-based testing) on, off or "ask" up front. `init` turns them off for prototypes and frontend-only apps; the read guard refuses the files of an extension that is off.
 - **Spec sync, enforced.** Any `feat`/`fix` commit that changes source code must also update the functional spec, or say `spec: no behaviour change`. A `commit-msg` git hook checks this, for AI and human commits alike.
 - **Context budget.** Hooks keep the AI-DLC bookkeeping out of the model's context: whole-file reads of the audit log and large spec files are refused (grep, then read a range), the audit log rotates monthly, and an oversized state file triggers a warning.
-- **Closing a change (TRACK-07).** simplify → code review → you pick the fixes → tests → spec sync → audit log → commit. It is a rule with its own checklists, so it works in any AI tool (just ask to "ship"); in Claude Code, `/aidlc-custom:ship` runs it. Steps 2 and 3 also exist as `/aidlc-custom:simplify` and `/aidlc-custom:code-review`; `ship` prefers Claude Code's own `simplify`/`code-review` when present.
+- **Closing a change (TRACK-07).** simplify → code review → you pick the fixes → tests → spec sync → audit log → commit. It is a rule with its own checklists, so it works in any AI tool (just ask to "ship"); in Claude Code, `/aidlc-custom:ship` runs it. Steps 2 and 3 also exist as `/aidlc-custom:simplify` and `/aidlc-custom:code-review`; `ship` prefers Claude Code's own `simplify`/`code-review` when present. Review is scaled to risk: **full** for permissions, business rules, data changes, APIs and larger server changes; **light** (no subagents) for UI tweaks; findings are labelled new or pre-existing, and pre-existing ones go to the backlog.
+- **Fewer re-reads (TRACK-09, TRACK-10).** Approval gates can be batched ("as recommended through code generation"), design and code run in separate sessions with a `## Resume here` hand-off, and small requests that arrive together ship once.
 - **Docs on demand.** `/aidlc-custom:doc` writes documentation outside the change flow: the full AS-IS spec from the code (or one area of it), a one-page change note for a Track S change, or a Word export of the spec.
 
 ## Requirements
@@ -101,7 +102,7 @@ Say "track M", "track L" or "full workflow" to override; your choice wins.
 When the change is done, close it:
 
 ```text
-> /aidlc-ship              # add "push" to push, "no-review" for docs-only or trivial changes, "fix-all" to skip the pick
+> /aidlc-ship              # add "push" to push, "full"/"light" to force a review level, "no-review" for docs-only or trivial changes, "fix-all" to skip the pick
 ```
 
 It simplifies, reviews, then stops for you to pick which findings to fix (only if it found something).

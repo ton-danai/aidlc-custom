@@ -5,7 +5,7 @@ This extension sizes every request into one of three tracks **before** any AI-DL
 
 The full AI-DLC workflow suits large features, but teams end up skipping it for small changes, which then leave no design notes and no spec update. Track S makes the lightweight path a documented one, with the spec kept in sync, instead of a skip.
 
-This file overrides the default "always run Requirements Analysis / Workflow Planning" for Track S, and trims Track M. For Track L, nothing changes: run the core workflow as written.
+This file overrides the default "always run Requirements Analysis / Workflow Planning" for Track S, and trims Track M. For Track L, run the core workflow with the two trims in TRACK-02.
 
 `CLAUDE.md` holds only the short team-rules section (TRACK-01 and the Track S steps in brief). The core AI-DLC workflow is a separate file (`.aidlc/aidlc-rules/aws-aidlc-rules/core-workflow.md` when installed by aidlc-custom) that is read only for Track M and L, so a Track S request never pays for it.
 
@@ -26,18 +26,22 @@ Answer each question. Take the **highest** track that any "yes" maps to.
 
 | # | Question | Yes → |
 |---|---|---|
-| 1 | Does it add a new module, page group, external system or scheduled job to an existing system? (e.g. a nightly sync from a third-party API) | L |
-| 2 | Will it be split into more than one unit of work, or take more than about a day? | L |
-| 3 | Does it add or change a database table/column, i.e. a migration? | M |
-| 4 | Does it add or change a permission, or who can see/edit something? (e.g. hiding a salary column from most users) | M |
-| 5 | Does it add or change a business rule that the functional spec documents? (e.g. a new cut-off date for submissions) | M |
-| 6 | Does it delete or overwrite user data in bulk? (e.g. a "reset all" action) | M |
-| 7 | Is the request ambiguous in a way that one or two clarifying questions can't settle? | M |
+| 1 | After one round of questions, are the requirements **still** unclear, contested between stakeholders, or dependent on decisions outside the team (security, another system's owner)? | L |
+| 2 | Will it be split into **more than one unit of work that ships separately**, or does it need infrastructure design (new service, network, deployment change)? | L |
+| 3 | Does it add a new module, page group, external system or scheduled job? (e.g. a nightly sync from a third-party API) | M |
+| 4 | Does it add or change a database table/column, i.e. a migration? | M |
+| 5 | Does it add or change a permission, or who can see/edit something? (e.g. hiding a salary column from most users) | M |
+| 6 | Does it add or change a business rule that the functional spec documents? (e.g. a new cut-off date for submissions) | M |
+| 7 | Does it delete or overwrite user data in bulk? (e.g. a "reset all" action) | M |
+| 8 | Is the request ambiguous in a way that one or two clarifying questions can't settle? | M |
 | — | None of the above: filter, sort, export, label, layout, small bug fix, one-endpoint tweak; a small standalone app or prototype with no backend and no real user data (e.g. a tic-tac-toe game) | S |
+
+Size alone does not make a request Track L. A new module, an integration or a few days of work with a clear scope is Track M: its one design gate catches what matters. When such features ran as Track L, most approvals came back unchanged, parts of the design changed during coding anyway, and the session used about twice the tokens for the same result.
 
 **Verification**:
 - The track and its one-line reason were stated before any code change
-- A "yes" to any of questions 1–7 was not classified as S
+- A "yes" to any of questions 1–8 was not classified as S
+- Size alone (a new module, an integration, a few days of work) was not classified as L. Track L needs a "yes" to question 1 or 2
 
 ---
 
@@ -47,7 +51,7 @@ Answer each question. Take the **highest** track that any "yes" maps to.
 Intent, code, tests, spec sync, ship. Nothing else.
 
 1. **Intent.** Read the affected code, then state the intent in 1–3 lines in chat: what changes and when it is done. If the request has more than one reasonable meaning, ask (at most 3 questions, in chat, no question files) and wait; otherwise go on without asking.
-2. **Code and tests**, in the same change.
+2. **Code and tests**, in the same change. For a bug fix, fix it where it broke. Don't move the fix into shared code (shared hooks, components, base services) unless the bug is in that shared code; note a wider refactor in the backlog instead (TRACK-07 step 4).
 3. **Run** the affected tests and type checks (`commands` in `.aidlc/aidlc-custom.json`). If a `restart` command is configured and server code changed, run it.
 4. **Spec sync** (TRACK-05). For a new standalone app with no spec yet, create one short file in `specDir` describing its behaviour (screens, rules); the intent is a good start.
 5. **Report** what changed, the test counts and which spec file(s) changed, then stop. Closing (simplify, review, commit) happens when the user asks for it (TRACK-07).
@@ -57,14 +61,17 @@ Fuller documentation (the full spec layout, a change note, a Word export) is mad
 Do not: read the core workflow, stage rule files or extension rule files; show the AI-DLC welcome message; run Workspace Detection, Requirements Analysis, Workflow Planning or Functional Design; write requirements, plan or design documents under `aidlc-docs/`; ask "shall I continue?" between steps.
 
 ### Track M — Light Design
-1. **Requirements**: at minimal depth. Clarify with questions in chat, or a question file if there are more than 3. Write a short `requirements.md` in the work item folder. No separate approval: it goes to the user with the design.
-2. **Functional Design**: business rules, data model/migration and the permission matrix only. Present it together with the requirements summary and wait for approval (standard 2-option message). This is the only approval before code.
+The default for a feature whose scope is clear, including a new module, page, integration or scheduled job.
+1. **Requirements**: at minimal depth. Clarify with questions in chat, or a question file if there are more than 3, and give each question a recommended option. Ask about anything that affects security, permissions or data. For every new or changed screen, menu item or endpoint, ask **who can see it and who can change it**, including whether admins get it without the permission. Don't assume an admin bypass or copy the visibility of a similar screen: a permission nobody asked about is a common cause of a second design round. Write a short `requirements.md` in the work item folder. No separate approval: it goes to the user with the design.
+2. **Functional Design**: business rules, data model/migration, the permission matrix (with the answers from step 1) and error messages. For a new module, add the component layout that Application Design would have produced: components, how they plug into existing guards and modules, new dependencies. Present it together with the requirements summary and wait for approval (standard 2-option message). This is the only approval before code.
 3. **Code Generation**: no separate plan approval. Implement, test and report.
 4. Skip the welcome message, Workflow Planning, User Stories, Application Design, Units Generation, NFR and Infrastructure Design, unless the user asks for them. Read only the stage rule files for steps 1–3.
 5. Update the functional spec (TRACK-05) in the same change.
 
 ### Track L — Full AI-DLC
-Read the core workflow and run it unchanged, with every approval gate. Also update the functional spec (TRACK-05) in the same commit as the code.
+Read the core workflow and run every stage it calls for. Also update the functional spec (TRACK-05) in the same commit as the code. Two trims apply:
+- **Application Design produces one file.** Write `<work-item>-application-design.md` with sections for components, methods, services and dependencies, not the separate components, component-methods, services and component-dependency files.
+- **Approval gates may be batched** (TRACK-09).
 
 ### Where the user is asked to stop
 
@@ -72,14 +79,14 @@ Read the core workflow and run it unchanged, with every approval gate. Also upda
 |---|---|
 | S | clarifying questions, only when the request is ambiguous; picking review fixes at ship, only when the review found something |
 | M | requirements + functional design approval; picking review fixes at ship |
-| L | every gate in the core workflow; picking review fixes at ship |
+| L | every gate in the core workflow, or one batched approval (TRACK-09); picking review fixes at ship |
 
 Don't add stops beyond these: no "shall I proceed?" between steps, and no confirmation for a plan the user has already approved.
 
 **Verification**:
 - Track S produced no `aidlc-docs/inception/` or `aidlc-docs/construction/` files and read no core-workflow, stage or extension rule file
 - Track M had exactly one approval gate before code: requirements + Functional Design
-- Track L followed every stage gate in the core workflow
+- Track L passed every stage gate in the core workflow, each approved on its own or by a batched approval
 
 ---
 
@@ -172,9 +179,19 @@ Where each kind of change goes, for the default AS-IS layout (files `00`–`15`;
 
 **Rule**: When the user says "ship", "close", "wrap up" or "commit this" (or runs `/aidlc-custom:ship`), close the change with the steps below, in order. Only step 4 waits for the user; run every other step without asking. The steps don't depend on any particular tool: where your tool has a dedicated simplify or code-review feature you may use it, but it must cover at least the checklist given here, and a missing feature never means skipping the step. aidlc-custom ships `simplify` and `code-review` skills (`SKILL.md` files) that run steps 2 and 3 in any tool that loads skills.
 
-The user may say "push" (push after committing), "no review" (skip steps 2–4, for docs-only or trivial changes) or "fix all" (step 4 applies the recommended fixes without stopping). If `.aidlc/aidlc-custom.json` is missing, tell the user to set aidlc-custom up first and stop.
+The user may say "push" (push after committing), "full" or "light" (use that review level instead of choosing one in step 1), "no review" (skip steps 2–4, for docs-only or trivial changes) or "fix all" (step 4 applies the recommended fixes without stopping). If `.aidlc/aidlc-custom.json` is missing, tell the user to set aidlc-custom up first and stop.
 
 1. **Check the change.** `git status` and `git diff --stat`. If nothing changed, say so and stop. If unrelated changes are mixed in (stray untracked files, edits from another work item), list them and leave them out. Never `git add -A`; stage files by path. Note which parts of the code changed (for example server, client, or both).
+
+   Then pick the review level and state it in one line with the reason, for example "Review: light — client-only layout change, 120 lines". Review is where most of a ship's tokens go, so spend them where a mistake is expensive:
+
+   | Level | When | Steps 2 and 3 |
+   |---|---|---|
+   | **full** | Any of: a permission or guard, a business rule or calculation, a migration or bulk data change, an added or changed API endpoint, server logic over ~150 changed lines, or the first ship of a Track M/L work item | Both lists below in full. Where your tool runs them as separate agents, one agent covers all simplify angles when the code diff is under ~300 lines |
+   | **light** | Everything else: UI, layout, labels, filters, small components, follow-up tweaks | One pass of each list over the diff yourself, with no separate agents; review the changed lines and their direct callers only |
+   | **none** | Docs, tests or copy only | Skipped, as with "no review" |
+
+   Count lines with `git diff --stat`, code only (not `aidlc-docs/`). When in doubt between full and light, choose full.
 2. **Simplify.** Go through the diff (not the whole codebase) and fix what you find:
    - code that duplicates a helper, component or utility the project already has: use the existing one
    - abstractions, parameters, options or layers with only one caller and no clear need
@@ -182,7 +199,7 @@ The user may say "push" (push after committing), "no review" (skip steps 2–4, 
    - work done twice: repeated queries or API calls, a query inside a loop, recomputing a value that is already at hand
    - names or structure that don't match the surrounding code
 
-   Don't change behaviour here. Note what you changed and what you left alone, for the log.
+   Don't change behaviour here. Skip suggestions that would move the change into shared code beyond the component being changed, and keep them for step 4 as backlog items: a small fix that grows into a shared redesign brings new bugs on every round. Note what you changed and what you left alone, for the log.
 3. **Review.** Read the full diff, plus the code each change calls or is called by, and look for correctness bugs:
    - logic: wrong condition, inverted check, off-by-one, wrong variable, wrong order of operations
    - edge cases: null/undefined, empty list or string, zero, boundary dates and values, duplicates, concurrent requests
@@ -194,15 +211,17 @@ The user may say "push" (push after committing), "no review" (skip steps 2–4, 
    - the TRACK-06 security list and any `securityChecklist` items
 
    Report only problems you can point to in the code, with a concrete case that goes wrong. Don't report style preferences.
-4. **Choose fixes (the only stop).** If the review found nothing, say so and go on. With "fix all", apply the fixes you recommend, list them and go on. Otherwise list the findings numbered, most severe first, one line each with `file:line`, and recommend which to fix (for example "fix 1–3; 4 is pre-existing"). Wait for the user to pick. Apply the chosen fixes, each behaviour change with a test. For real but out-of-scope findings not chosen, ask once whether to record them in the project's backlog file, if it has one.
+4. **Choose fixes (the only stop).** If the review found nothing, say so and go on. Otherwise list the findings numbered, most severe first, one line each with `file:line`, each labelled **new** (introduced by this diff) or **pre-existing**. Recommend fixing the new ones and recording the pre-existing ones in the backlog (for example "fix 1–3; 4 is pre-existing → backlog"), and list the shared-code refactors step 2 skipped as backlog items, not fixes. With "fix all", apply the fixes you recommend, list them and go on. Otherwise wait for the user to pick; their choice wins. Apply the chosen fixes, each behaviour change with a test. For real but out-of-scope findings not chosen, ask once whether to record them in the project's backlog file, if it has one.
 5. **Verify.** Run the `commands.test` and `commands.typecheck` entries that apply to the changed code. If a migration was added, check that it applies and reverts on the dev database. If anything fails, fix it and run it again; if you can't fix it, stop, report the failing output and don't commit. If `commands.restart` is set and server code changed, run it and confirm the server started.
 6. **Spec sync.** Compare the final diff with the spec (TRACK-05). If behaviour changed and the spec doesn't describe it yet, edit the matching file(s) now, locating rows with `grep -n`. If the change is exempt, the commit message carries `spec: no behaviour change`. Don't regenerate document exports.
-7. **Log.** Append to the audit file with `cat >> <auditFile> <<'EOF'`; don't read or rewrite it. Add one entry per step that ran (Simplify, Code Review Fixes, Ship), in the project's audit format, with the user's raw input, an ISO timestamp and the test counts. Update the state file as TRACK-04 says.
+7. **Log.** Append to the audit file with `cat >> <auditFile> <<'EOF'`; don't read or rewrite it. Add one entry per step that ran (Simplify, Code Review Fixes, Ship), in the project's audit format, with the user's raw input, the real time from `date -u +%Y-%m-%dT%H:%M:%SZ` (not an estimate) and the test counts. Update the state file as TRACK-04 says.
 8. **Commit.** Match the repo's commit style (`git log`). Typical shape: `<type>(<scope>): <summary in the user's terms>`, a short body on what the user sees, then a list of notable changes. Types: `feat`, `fix`, `refactor`, `docs`, `chore`; the scope is the page or module. Add `spec: no behaviour change` on its own line when step 6 found the change exempt. One commit per work item, including its `aidlc-docs/` updates. Commit on the current branch; push only when the user said "push".
-9. **Report.** At most six lines: commit sha and subject, fixes applied, test counts, spec files updated (or "spec: no behaviour change"), backlog items added, and whether it was pushed.
+9. **Report.** At most six lines: commit sha and subject, review level, fixes applied, test counts, spec files updated (or "spec: no behaviour change"), backlog items added, and whether it was pushed. If this session has run more than one ship or a full design-to-code cycle, end by suggesting a new session for the next change (TRACK-10).
 
 **Verification**:
-- Steps 2 and 3 ran (or the user said "no review"); neither was skipped for lack of a tool feature
+- Steps 2 and 3 ran at the level stated in step 1 (or the user said "no review"); neither was skipped for lack of a tool feature
+- No UI-only change ran a full review unless the user asked for "full"
+- Every finding offered in step 4 was labelled new or pre-existing
 - No commit was made with failing tests or type checks
 - The commit stages files by path and includes the spec and `aidlc-docs/` updates
 
@@ -229,6 +248,42 @@ Record the effective values in `aidlc-state.md` under `## Extension Configuratio
 **Verification**:
 - No opt-in question was asked for an extension set to `"on"` or `"off"`
 - No file of an extension set to `"off"` was read
+
+---
+
+## Rule TRACK-09: Batched Approvals
+
+**Rule**: Approval gates exist so the user can change direction. When the user has nothing to change, a gate only costs another turn that re-reads the whole context. So:
+- Every question and every design choice offers a **recommended** option, so the user can answer "as recommended".
+- The user can approve several gates at once, for example "as recommended through code generation". Then go through each covered stage, take the recommended options, write the artifacts and continue without stopping.
+- Even inside a batch, **stop and ask** when one of these comes up:
+  - a decision with no recommendation, or whose options trade off security, data loss or cost
+  - a contradiction with an earlier answer, or with an enabled extension rule
+  - a TRACK-03 escalation
+  - a blocking finding
+- Record the batch approval once in the audit file, with the user's raw words and the stages it covers. Then add one short entry per stage it passed, noting "batched approval".
+- Choosing review fixes (TRACK-07 step 4) is never batched, except by the user's own "fix all".
+
+**Verification**:
+- Every stage passed under a batch has an audit entry that points back to the batch approval
+- No stop condition above was skipped
+
+---
+
+## Rule TRACK-10: One Session per Phase
+
+**Rule**: A session re-reads its whole context on every turn, so a long session costs more with each step. For Track M and Track L:
+- **Session 1** covers requirements and design, and ends at design approval.
+- **Session 2** covers code, build/test and ship.
+- A large Track L may split further, for example one session per unit.
+- Before ending a session, add a `## Resume here` section to the work item file: the approved artifacts to read, the decisions already taken, open points and the next step. The next session reads that file and the listed artifacts, not the earlier conversation.
+- When a session gets long or the user asks about token usage, suggest a new session at the next phase boundary, never mid-step. After a ship that ends a full design-to-code cycle, suggest a new session for the next change.
+- **Batch small follow-ups.** When several Track S requests arrive together (e.g. "add a Today button and a year picker"), implement them all, then ship once, not once per request. Commit them separately only if the user asks.
+
+**Verification**:
+- The work item file has a current `## Resume here` section whenever a phase ends
+- Code sessions start from the work item file, not from a long design conversation
+- Track S requests that arrived together were shipped together
 
 ---
 
