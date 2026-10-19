@@ -1,6 +1,6 @@
 {
   "name": "aidlc-custom",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Unofficial extension for the AWS AI-DLC workflow: right-sized work tracks (S/M/L), functional-spec sync enforced at commit, and hooks that keep AI-DLC bookkeeping out of the context window.",
   "author": { "name": "Danai T" },
   "license": "MIT",

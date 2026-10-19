@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.3.0 — 2026-10-19
+
+Lessons from running 0.2.0 on a production project: spend design and review tokens where a mistake is expensive. After updating the plugin, re-run `/aidlc-custom:init` in each project to update `work-tracks.md` and `CLAUDE.md`; a project that edited its own `work-tracks.md` should compare first, since init replaces it.
+
+- TRACK-01: size alone no longer makes a request Track L. A new module, page group, external system or scheduled job is Track M; Track L needs requirements that stay unclear after a round of questions, several separately shipped units, or infrastructure design. The checklist has 8 questions
+- TRACK-02: Track M asks who can see and who can change each new screen or endpoint (no assumed admin bypass), offers a recommended option for every question, and covers the component layout of a new module in Functional Design; Track L writes one Application Design file; a Track S bug fix stays where it broke
+- TRACK-07: ship picks a review level (full / light / none) by risk and states it; `full` and `light` force one. Findings are labelled new or pre-existing, pre-existing ones and shared-code refactors go to the backlog; audit timestamps come from `date -u`; the report suggests a new session after a full cycle
+- TRACK-09 (new): batched approvals, with the cases that still stop a batch
+- TRACK-10 (new): one session per phase with a `## Resume here` hand-off, and small requests that arrive together ship once
+
 ## 0.2.0 — 2026-10-17
 
 Lighter path for small work. After updating the plugin, re-run `/aidlc-custom:init` in each project: it updates `CLAUDE.md`, `work-tracks.md` and the config, which a plugin update does not touch.
